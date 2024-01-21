@@ -30,6 +30,7 @@ const CustomCanvas = (props: CanvasProps) => {
       const canvas = canvasRef.current;
       const context = canvas.getContext("2d")!;
       context.clearRect(0, 0, canvas.width, canvas.height);
+      console.log(canvas.toDataURL());
       props.setClear(false);
     }
   }, [props.clear]);
@@ -101,52 +102,55 @@ const CustomCanvas = (props: CanvasProps) => {
     }
     return true;
   }
-
   function fill(e: MouseEvent) {
-    //console.log("Checking Fill Mode")
     if (canvasRef.current && props.fillMode) {
-      //console.log("Filling Current")
       const canvas = canvasRef.current;
       const context = canvas.getContext("2d")!;
-      var pos = getMousePos(canvas, e);
-      var x = Math.floor(pos.x);
-      var y = Math.floor(pos.y);
-      var imgd = context.getImageData(0, 0, canvas.width, canvas.height);
-      var pix = imgd.data;
-      //console.log("Pix", pix);
+      const pos = getMousePos(canvas, e);
+      const x = Math.floor(pos.x);
+      const y = Math.floor(pos.y);
+      const imgd = context.getImageData(0, 0, canvas.width, canvas.height);
+      const pix = imgd.data;
+  
       const initialPixel = getPixel(pix, y * imgd.width + x);
-
-      var stack = Array();
-      stack.push([x, y]); // Push the seed
+      const filledPixels = new Set<string>();
+  
+      const stack = [[x, y]]; // Push the seed
+      const fillColor = props.color;
+  
+      context.fillStyle = fillColor;
+  
       while (stack.length > 0) {
-        var currPoint = stack.shift();
-        //console.log("Filling", currPoint)
-        const pixel = getPixel(pix, currPoint[1] * imgd.width + currPoint[0]);
-        //console.log("Initial Pixel", initialPixel)
-        //console.log("New Pixel", pixel)
+        const currPos = stack.shift()!;
+        var currX=currPos[0];
+        var currY=currPos[1];
+        const pixelKey = `${currX},${currY}`;
+  
         if (
-          currPoint[0] > 0 &&
-          currPoint[0] < canvas.width &&
-          currPoint[1] > 0 &&
-          currPoint[1] < canvas.height &&
-          arraysEqual(initialPixel, pixel)
+          currX >= 0 &&
+          currX < canvas.width &&
+          currY >= 0 &&
+          currY < canvas.height &&
+          !filledPixels.has(pixelKey) &&
+          arraysEqual(initialPixel, getPixel(pix, currY * imgd.width + currX))
         ) {
-          // Check if the point is not filled
-          context.fillStyle=props.color;
-          context.fillRect(currPoint[0], currPoint[1], 1, 1); // Fill the point with the foreground
-          stack.push([currPoint[0] + 1, currPoint[1]]); // Fill the east neighbour
-          stack.push([currPoint[0], currPoint[1] + 1]); // Fill the south neighbour
-          stack.push([currPoint[0] - 1, currPoint[1]]); // Fill the west neighbour
-          stack.push([currPoint[0], currPoint[1] - 1]); // Fill the north neighbour
+          context.fillRect(currX, currY, 1, 1); // Fill the point with the foreground
+          filledPixels.add(pixelKey);
+  
+          stack.push([currX + 1, currY]); // Fill the east neighbour
+          stack.push([currX, currY + 1]); // Fill the south neighbour
+          stack.push([currX - 1, currY]); // Fill the west neighbour
+          stack.push([currX, currY - 1]); // Fill the north neighbour
         }
       }
     }
   }
   return (
     <canvas
+      onContextMenu={(event: MouseEvent)=>event.preventDefault()}
       onClick={(event: MouseEvent) => {fill(event)}}
-      onMouseDown={() => {
-        setmouseDown(true);
+      onMouseDown={(event: MouseEvent) => {
+        if(event.button==0) setmouseDown(true);
       }}
       onMouseLeave={() => {
         setmouseDown(false);
