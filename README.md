@@ -1,3 +1,7 @@
+<div align="center">
+<img src="https://github.com/zubairmh/Ribble/assets/116816535/53879e20-464e-4272-94bb-903cbdce3335"/>
+</div>
+
 # Ribble 🚀
 
 Ribble is a Next.js 13 powered Skribbl alternative ✏️
